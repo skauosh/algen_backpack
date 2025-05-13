@@ -35,7 +35,7 @@ class Algorithm:
         return binaryBlock
 
     def translateBinaryToBlock(self, blockInt64):
-        block = Block2(3)
+        block = Block2(self.Dimensionality)
         block.X = np.zeros(self.Dimensionality, dtype=np.int8)
         block.rot = np.zeros(self.Dimensionality-1,  dtype=np.int8)
         block.isInside = 0
