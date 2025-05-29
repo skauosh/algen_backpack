@@ -60,13 +60,11 @@ class Algorithm:
                 #crossover - we randomly copy one of the parents
                 whichParent = random.random()
                 if (whichParent > 0.5):
-                    for a in self.Phenotypes[i]:
-                        self.BitFlipMutation(a, 0.1)
-                    newGen.append(self.Phenotypes[i])
+                    newOne = self.BitFlipMutation(self.Phenotypes[i], 0.1)
+                    newGen.append(newOne)
                 else:
-                    for a in self.Phenotypes[i]:
-                        self.BitFlipMutation(a, 0.1)
-                    newGen.append(self.Phenotypes[parentPairs[i]])
+                    newOne = self.BitFlipMutation(self.Phenotypes[parentPairs[i]], 0.1)
+                    newGen.append(newOne)
             else: 
                 #recombination - we take two parents, split them in a random point.
                 combined = []
@@ -78,8 +76,7 @@ class Algorithm:
                 for j in range(splitPoint, length):
                     combined.append(self.Phenotypes[parentPairs[i]][j])
 
-                for a in combined:
-                    self.BitFlipMutation(a, 0.1)
+                combined = self.BitFlipMutation(combined, 0.1)
                 newGen.append(combined)
         return newGen
 
