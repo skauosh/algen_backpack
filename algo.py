@@ -67,17 +67,17 @@ class Algorithm:
                     newGen.append(self.Phenotypes[parentPairs[i]])
             else: 
                 #recombination - we take two parents, split them in a random point.
-                length = min(self.Phenotypes[i][0].bit_length(), self.Phenotypes[parentPairs[i]][0].bit_length())
-                length = max(length, 3) #guards against some weird behaviour, in general might behave weird for small parents like 0b0
-                splitPoint = random.randint(1, length - 1)
+                combined = []
+                length = min(len(self.Phenotypes[i]), len(self.Phenotypes[parentPairs[i]]))
 
-                binLeft = self.Phenotypes[i][0] >> (length - splitPoint)
-                binRight = self.Phenotypes[parentPairs[i]][0]  & ((1 << splitPoint) - 1)
-                combinedBin = (binLeft << splitPoint) | binRight
+                splitPoint = random.randint(0, length)
+                for j in range(0, splitPoint):
+                    combined.append(self.Phenotypes[i][j])
+                for j in range(splitPoint, length):
+                    combined.append(self.Phenotypes[parentPairs[i]][j])
+
                 #WE SHOULD APPLY MUTATIONS HERE
-
-                whichParentsType = random.random()
-                newGen.append((combinedBin, self.Phenotypes[i][1] if whichParentsType > 0.5 else self.Phenotypes[parentPairs[i]][1]))
+                newGen.append(combined)
         return newGen
 
 
