@@ -6,6 +6,7 @@ def terminationCondition():
 #simpler block for testing
 class Block2:
     def __init__(self, dim):
+        self.type = 0
         self.rot = np.zeros((dim - 1, ))
         self.X = np.zeros((dim, ))
         self.isInside = 0
@@ -21,7 +22,33 @@ class Algorithm:
         self.isInStride = (dimensionality - 1)*2
         self.coordinatesStride = self.isInStride + 1
 
-    def translateBlockToBinary(self, block):
+        #collection that stores phenotypes (backpacks)
+        #backpacks are an array of (blockBinary, type)
+        self.Phenotypes = []
+
+    #creates a backpack from [] of blocks
+    def CreatePhenotype(self, blocks):
+        backpack = []
+        for b in blocks:
+            backpack.append((self.__translateBlockToBinary(b), b.type))
+
+        self.Phenotypes.append(backpack)
+
+    def ListCurrentPhenotypes(self):
+        for a in self.Phenotypes:
+            print(a)
+
+    #checks how much value we store inside a backpack
+    #takes negative values based on how much "illegal" the configuration is
+    def QualityFunction(self, backpack, typeValueArray): #typeValueArray is array that stores costs for given types
+        quality = 0
+        #here we need to check legality of a backpack
+        for blockTuple in backpack:
+            quality += typeValueArray[blockTuple[1]]
+        return quality
+
+
+    def __translateBlockToBinary(self, block):
         binaryBlock = np.int64(0) #force 64 bit ints, max dimensionality is limited by this
 
         for i in range(self.Dimensionality-1): #set single rotation bits
@@ -34,10 +61,10 @@ class Algorithm:
 
         return binaryBlock
 
-    def translateBinaryToBlock(self, blockInt64):
+    def __translateBinaryToBlock(self, blockInt64):
         block = Block2(self.Dimensionality)
         block.X = np.zeros(self.Dimensionality, dtype=np.int8)
-        block.rot = np.zeros(self.Dimensionality-1,  dtype=np.int8)
+        block.rot = np.zeros(self.Dimensionality-1, dtype=int)
         block.isInside = 0
 
         for i in range(self.Dimensionality - 1, -1, -1): #set single rotation bits
@@ -52,19 +79,18 @@ class Algorithm:
 
 
 if __name__ == "__main__":
-    A = Algorithm(3)
+    Algo = Algorithm(3)
+
+    #test block
     b = Block2(3)
+    b.type = 4
     b.rot = [1, 2]
     b.X = [8, 97, 32]
     b.isInside = 1
 
-    #should give us: 00100000 01100001 00001000 1 10 01, 2 coordinate double bits, 1 is inside bit and 1 rotation bit
-    #in normal: 67903769
-    print(bin(np.int64(A.translateBlockToBinary(b)))[2:].zfill(64) )
-    print(A.translateBlockToBinary(b))
+    #test value array
+    valueArray = [1,2,3,4,5,6]
 
-    #should give the same as block we put in
-    c = A.translateBinaryToBlock(A.translateBlockToBinary(b))
-    print(c.rot)
-    print(c.isInside)
-    print(c.X)
+    Algo.CreatePhenotype([b])
+    Algo.ListCurrentPhenotypes()
+    print(Algo.QualityFunction(Algo.Phenotypes[0], valueArray)) #should give 5
