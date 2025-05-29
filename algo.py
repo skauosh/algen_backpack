@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 def terminationCondition():
     return True
@@ -46,6 +47,38 @@ class Algorithm:
         for blockTuple in backpack:
             quality += typeValueArray[blockTuple[1]]
         return quality
+
+    #parentPairs - array[idOfParent1] = idOfParent2
+    def OnePointCrossoverRecombination(self, parentPairs, probability):
+        #probability = chance for each parent pair to create an offspring by crossover 
+        #1 - probabilty = children will be copies of one of the parents
+        #returns a Phenotype
+        newGen = []
+        for i in range(0, len(parentPairs)):
+            rng = random.random()
+            if (rng > probability):
+                #crossover - we randomly copy one of the parents
+                whichParent = random.random()
+                if (whichParent > 0.5):
+                    #WE SHOULD APPLY MUTATIONS HERE
+                    newGen.append(self.Phenotypes[i])
+                else:
+                    #WE SHOULD APPLY MUTATIONS HERE
+                    newGen.append(self.Phenotypes[parentPairs[i]])
+            else: 
+                #recombination - we take two parents, split them in a random point.
+                length = min(self.Phenotypes[i][0].bit_length(), self.Phenotypes[parentPairs[i]][0].bit_length())
+                length = max(length, 3) #guards against some weird behaviour, in general might behave weird for small parents like 0b0
+                splitPoint = random.randint(1, length - 1)
+
+                binLeft = self.Phenotypes[i][0] >> (length - splitPoint)
+                binRight = self.Phenotypes[parentPairs[i]][0]  & ((1 << splitPoint) - 1)
+                combinedBin = (binLeft << splitPoint) | binRight
+                #WE SHOULD APPLY MUTATIONS HERE
+
+                whichParentsType = random.random()
+                newGen.append((combinedBin, self.Phenotypes[i][1] if whichParentsType > 0.5 else self.Phenotypes[parentPairs[i]][1]))
+        return newGen
 
 
     def __translateBlockToBinary(self, block):
