@@ -52,7 +52,7 @@ class Algorithm:
     def OnePointCrossoverRecombination(self, parentPairs, probability):
         #probability = chance for each parent pair to create an offspring by crossover 
         #1 - probabilty = children will be copies of one of the parents
-        #returns a Phenotype
+        #returns phenotypes
         newGen = []
         for i in range(0, len(parentPairs)):
             rng = random.random()
@@ -60,10 +60,12 @@ class Algorithm:
                 #crossover - we randomly copy one of the parents
                 whichParent = random.random()
                 if (whichParent > 0.5):
-                    #WE SHOULD APPLY MUTATIONS HERE
+                    for a in self.Phenotypes[i]:
+                        self.BitFlipMutation(a, 0.1)
                     newGen.append(self.Phenotypes[i])
                 else:
-                    #WE SHOULD APPLY MUTATIONS HERE
+                    for a in self.Phenotypes[i]:
+                        self.BitFlipMutation(a, 0.1)
                     newGen.append(self.Phenotypes[parentPairs[i]])
             else: 
                 #recombination - we take two parents, split them in a random point.
@@ -76,9 +78,26 @@ class Algorithm:
                 for j in range(splitPoint, length):
                     combined.append(self.Phenotypes[parentPairs[i]][j])
 
-                #WE SHOULD APPLY MUTATIONS HERE
+                for a in combined:
+                    self.BitFlipMutation(a, 0.1)
                 newGen.append(combined)
         return newGen
+
+    #flips bits of a phenotype, probability shouldn't be too big
+    def BitFlipMutation(self, phenotype, probability): 
+        new_phenotype = []
+        for i in range(0, len(phenotype)): #over blocks
+            newBin = 0b0
+            for j in range(phenotype[i][0].bit_length()): #over bits of a block
+                bit = (phenotype[i][0] >> j) & 1
+                rng = random.random()
+                if (rng < probability):
+                    bit ^= 1
+                newBin |= (bit << j)
+            if random.random() < probability: #since above mutation makes binary numbers smaller with many iterations, some chance to grow them
+                newBin |= (1 << phenotype[i][0].bit_length())
+            new_phenotype.append((newBin, phenotype[i][1]))
+        return new_phenotype
 
 
     def __translateBlockToBinary(self, block):
