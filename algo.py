@@ -2,6 +2,7 @@ import numpy as np
 import random
 
 MAX_PAIRING_ATTEMPTS = 100
+MUTATION_BITFLIP_CHANCE = 1/32
 
 def terminationCondition():
     return True
@@ -15,6 +16,7 @@ class Block2:
 
 class Algorithm:
     def __init__(self, dimensionality, typeValueArray):
+        self.blockSetup = []
         self.typeValueArray = typeValueArray
         self.BlockPhenotype = [] # array of arrays of phenotypes in !!BINARY!!
         self.Dimensionality = dimensionality
@@ -28,8 +30,9 @@ class Algorithm:
         #backpacks are an array of (blockBinary, type)
         self.Phenotypes = []
         self.PreviousGen = []
+        self.BestSpecimenID = 0
 
-    #creates a backpack from [] of blocks
+    #creates a backpack from [] of blocks, ONLY CALL AT CREATION NOT AFTER ITERATING
     def CreateAndAddPhenotype(self, blocks):
         backpack = []
         for b in blocks:
@@ -50,11 +53,13 @@ class Algorithm:
         parentPairs = [] #format parentPairs[par1] = par2, int array
         
         highestSpecimenQuality = 0
+        self.BestSpecimenID = 0
         sum = 0
         for backpack in self.Phenotypes:
             a = self.QualityFunction(backpack)
             sum += a
             if a > highestSpecimenQuality:
+                self.BestSpecimenID = self.Phenotypes.index(backpack)
                 highestSpecimenQuality = a
 
         avgQuality = sum/len(self.Phenotypes)
@@ -62,37 +67,37 @@ class Algorithm:
 
         print(f'HIGHEST QUALITY IN GENERATION: {highestSpecimenQuality}')
 
+        parentsIds = []
+        for i in range(0, len(self.Phenotypes)):
+            par1Id = random.randint(0, len(self.Phenotypes)-1)
+            par2Id = random.randint(0, len(self.Phenotypes)-1)
+            
+            par1Quality = self.QualityFunction(self.Phenotypes[par1Id])
+            par2Quality = self.QualityFunction(self.Phenotypes[par2Id])
 
-        if(incestSwitch == 0): #will write between-generation mating later
-            for backpack in self.Phenotypes:
-                chanceToMate = random.random()
+            if(par1Quality >= par2Quality):
+                parentsIds.append(par1Id)
+            else:
+                parentsIds.append(par2Id)
 
-                specimenQuality = self.QualityFunction(backpack)
+        for parentId in parentsIds:
+            specimenQuality = self.QualityFunction(self.Phenotypes[parentId])
+            lowerRange = specimenQuality - specimenQuality*biasParameter
+            higherRange = specimenQuality + specimenQuality*biasParameter
 
-                #if specimen is above average it has 70% chance to mate
-                #if specimen is below, it has 30%
-                #in general it should scale with quality, not simple 2 way like this
-                if(specimenQuality < avgQuality):
-                    if(chanceToMate > 0.7):
-                        continue
-                elif(chanceToMate > 0.3):
-                    continue
+            while True:
+                potentialMateId = random.randint(0, len(self.Phenotypes)-1)
+                qualityOfPotMate = self.QualityFunction(self.Phenotypes[potentialMateId])
 
-                lowerRange = specimenQuality - specimenQuality*biasParameter
-                higherRange = specimenQuality + specimenQuality*biasParameter
+                if((qualityOfPotMate > lowerRange) and (qualityOfPotMate < higherRange) and potentialMateId != self.Phenotypes.index(backpack)):
+                    parentPairs.append((parentId, potentialMateId))
+                    break
+                elif(i > MAX_PAIRING_ATTEMPTS):
+                    parentPairs.append((parentId, potentialMateId)) #if paring fails, just adds random
+                    break
+                i=i+1
 
-                i = 0
-                while True:
-                    potentialMateId = random.randint(0, len(self.Phenotypes)-1)
-                    qualityOfPotMate = self.QualityFunction(self.Phenotypes[potentialMateId])
 
-                    if((qualityOfPotMate > lowerRange) and (qualityOfPotMate < higherRange) and potentialMateId != self.Phenotypes.index(backpack)):
-                        parentPairs.append(potentialMateId)
-                        break
-                    elif(i > MAX_PAIRING_ATTEMPTS):
-                        parentPairs.append(-1) #-1 = no pair
-                        break
-                    i=i+1
         return parentPairs
 
 
@@ -125,32 +130,30 @@ class Algorithm:
         #1 - probabilty = children will be copies of one of the parents
         #returns phenotypes
         newGen = []
-        for i in range(0, len(parentPairs)):
-            if(parentPairs[i] == -1): #skips if no pair
-                continue
+        for pair in parentPairs:
             rng = random.random()
             if (rng > probability):
                 #crossover - we randomly copy one of the parents
                 whichParent = random.random()
                 if (whichParent > 0.5):
-                    newOne = self.BitFlipMutation(self.Phenotypes[i], 0.01)
+                    newOne = self.BitFlipMutation(self.Phenotypes[pair[0]], MUTATION_BITFLIP_CHANCE)
                     newGen.append(newOne)
                 else:
-                    newOne = self.BitFlipMutation(self.Phenotypes[parentPairs[i]], 0.01)
+                    newOne = self.BitFlipMutation(self.Phenotypes[pair[1]], MUTATION_BITFLIP_CHANCE)
                     newGen.append(newOne)
             else: 
                 #recombination - we take two parents, split them in a random point.
                 combined = []
-                length = min(len(self.Phenotypes[i]), len(self.Phenotypes[parentPairs[i]]))
+                length = min(len(self.Phenotypes[pair[0]]), len(self.Phenotypes[pair[1]]))
 
                 splitPoint = random.randint(0, length)
 
                 for j in range(0, splitPoint):
-                    combined.append(self.Phenotypes[i][j])
+                    combined.append(self.Phenotypes[pair[0]][j])
                 for j in range(splitPoint, length):
-                    combined.append(self.Phenotypes[parentPairs[i]][j])
+                    combined.append(self.Phenotypes[pair[1]][j])
 
-                combined = self.BitFlipMutation(combined, 0.01)
+                combined = self.BitFlipMutation(combined, MUTATION_BITFLIP_CHANCE)
                 newGen.append(combined)
         return newGen
 
@@ -171,10 +174,30 @@ class Algorithm:
         return new_phenotype
 
 
+    #takes initial block setup, then randomizes and adds to current population, based on its size
+    def Imigration(self, percent):
+        immigrants = self.blockSetup
+        random.shuffle(immigrants)
+
+        for i in range(0, int(percent*len(self.Phenotypes))):
+            for b in immigrants:
+                b.X[0] = random.randint(-400, 400) #set x
+                b.X[1] = random.randint(-400, 400) #set y
+                b.rot[0] = random.randint(0, 1) #doesn't do anything yet so whatever
+            self.CreateAndAddPhenotype(immigrants) 
+
+
     def Iterate(self):
         self.PreviousGen = self.Phenotypes
-        parentPair = self.PairParentsUp(0.35)
-        print(parentPair)
+        #self.Imigration(0.1)
+        parentPair = self.PairParentsUp(0.20)
+
+        print('Backpack:', end="")
+        for b in self.Phenotypes[self.BestSpecimenID]:
+            c =  self.__translateBinaryToBlock(b[0])
+            print(f' X:{c.X[0]} Y:{c.X[1]} R:{c.rot[0]} T:{b[1]} | ', end="")
+        print('\n', end="")
+        
         self.Phenotypes = self.OnePointCrossoverRecombination(parentPair, 0.75)
 
 
