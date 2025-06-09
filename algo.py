@@ -181,8 +181,8 @@ class Algorithm:
 
         for i in range(0, int(percent*len(self.Phenotypes))):
             for b in immigrants:
-                b.X[0] = random.randint(-400, 400) #set x
-                b.X[1] = random.randint(-400, 400) #set y
+                b.X[0] = random.randint(0, 400) #set x
+                b.X[1] = random.randint(0, 400) #set y
                 b.rot[0] = random.randint(0, 1) #doesn't do anything yet so whatever
             self.CreateAndAddPhenotype(immigrants) 
 
@@ -214,7 +214,7 @@ class Algorithm:
 
     def __translateBinaryToBlock(self, blockInt64):
         block = Block2(self.Dimensionality)
-        block.X = np.zeros(self.Dimensionality, dtype=np.int8)
+        block.X = np.zeros(self.Dimensionality, dtype=np.uint8)
         block.rot = np.zeros(self.Dimensionality-1, dtype=int)
         block.isInside = 0
 
